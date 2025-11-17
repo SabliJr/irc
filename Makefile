@@ -6,7 +6,8 @@ CCFLAGS = -Wall -Wextra -Werror -std=c++98
 OBJS_DIR = objs/
 SRCS_DIR = src/
 
-FILES = main.cpp
+FILES = main.cpp \
+		Server.cpp
 
 SRCS = $(addprefix $(SRCS_DIR), $(FILES))
 OBJS = $(addprefix $(OBJS_DIR), $(FILES:.cpp=.o))

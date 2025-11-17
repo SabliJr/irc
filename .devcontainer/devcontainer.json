@@ -1,0 +1,36 @@
+{
+  "name": "42-env",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "kube.42header",
+        "MariusvanWijk-JoppeKoers.codam-norminette-3",
+        "mhutchie.git-graph",
+        "DoKca.42-ft-count-line"
+      ],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "fish",
+        "editor.fontSize": 16,
+        "editor.tabSize": 4,
+        "editor.insertSpaces": false,
+        "editor.renderWhitespace": "all",
+        "editor.formatOnSave": true,
+        "files.autoSave": "afterDelay",
+        "files.trimTrailingWhitespace": true,
+        "files.insertFinalNewline": true,
+        "42header.email": "student@student.42.fr",
+        "42header.username": "student"
+      }
+    }
+  },
+  // "mounts": [
+  //   "source=${localEnv:HOME}/.gitconfig,target=/root/.gitconfig,type=bind,consistency=cached,readonly",
+  //   "source=${localEnv:HOME}/.ssh,target=/root/.ssh,type=bind,consistency=cached,readonly"
+  // ],
+  "containerEnv": {
+    "DISPLAY": "host.docker.internal:0"
+  }
+}

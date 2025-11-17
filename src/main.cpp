@@ -1,12 +1,17 @@
-#include <iostream>
-#include <cstring>
-#include <cstdlib>
+#include "../includes/Server.hpp"
 
-bool check_args(char **av)
+bool check_args(int ac, char **av)
 {
+	// Check number of arguments
 	// Check if av[0] is ./ircserv
 	// Check if av[1] is a valid port
 	// Check if av[2] is a password
+
+	if (ac != 3) {
+		std::cout << "Usage: ./ircserv <port> <password>" << std::endl;
+		return false;
+	}
+
 	if (strcmp(av[0], "./ircserv") != 0) {
 		std::cout << "av[0] is not ./ircserv" << std::endl;
 		return false;
@@ -20,21 +25,27 @@ bool check_args(char **av)
 		std::cout << "Password is empty" << std::endl;
 		return false;
 	}
+	std::cout << "Arguments are valid" << std::endl;
 	return true;
 }
 
 int main(int ac, char **av)
 {
-	if (ac != 3) {
-		std::cout << "Usage: ./ircserv <port> <password>" << std::endl;
-		return 1;
-	}
-
-	if (!check_args(av)) {
+	if (!check_args(ac, av)) {
 		std::cout << "Arguments are invalid" << std::endl;
 		return 1;
 	}
-	std::cout << "Arguments are valid" << std::endl;
+
+	try {
+		signal(SIGINT, Server::SignalHandler);
+		signal(SIGTERM, Server::SignalHandler);
+		Server ser(atoi(av[1]), std::string(av[2]));
+
+	} catch (const std::exception &e) {
+		std::cout << "Error: " << e.what() << std::endl;
+		std::cout << "DO THE NECESSARY CLEANUP" << std::endl;
+		return 1;
+	}
 
 	return 0;
 }
