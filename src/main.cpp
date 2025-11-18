@@ -39,7 +39,7 @@ int main(int ac, char **av)
 	try {
 		signal(SIGINT, Server::SignalHandler);
 		signal(SIGTERM, Server::SignalHandler);
-		Server ser(atoi(av[1]), std::string(av[2]));
+		Server ser(atoi(av[1]), av[2]);
 
 	} catch (const std::exception &e) {
 		std::cout << "Error: " << e.what() << std::endl;
