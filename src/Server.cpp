@@ -1,5 +1,8 @@
 #include "../includes/Server.hpp"
 
+bool Server::_signal = false;
+std::vector<Client> Server::_clients;
+
 Server::Server() : _port(0), _serverSocketFd(-1), _password("") {
 	//! REMOVE THE BS
 	std::cout << "Server constructor called" << std::endl;
@@ -17,12 +20,12 @@ Server::Server(int port, std::string password) : _port(port), _password(password
 Server::~Server() {}
 
 void Server::SignalHandler(int signum) {
-	std::cout << "Signal received: " << signum << std::endl;
+	std::cout << BLUE << "Signal received: " << signum << RESET << std::endl;
 	_signal = true;
 }
 
 void Server::ServerInit() {
-	std::cout << "ServerInit called" << std::endl;
+	std::cout << GREEN << "ServerInit called" << RESET << std::endl;
 	CreateSocket();
 
 	while (this->_signal == false) {
@@ -30,12 +33,17 @@ void Server::ServerInit() {
 		if (ret == -1 && this->_signal == false) {
 			throw std::runtime_error("poll() failed");
 		}
-		for (int i = 0; i < this->_pollFds.size(); i++) {
+		for (size_t i = 0; i < this->_pollFds.size(); i++) {
 			if (this->_pollFds[i].revents & POLLIN) {
 				if (this->_pollFds[i].fd == this->_serverSocketFd) {
 					acceptClient();
 				} else {
-					handleMessage(this->_pollFds[i].fd);
+					Client *client = getClientByFd(this->_pollFds[i].fd);
+					if (client != NULL) {
+						handleMessage(this->_pollFds[i].fd, client);
+					} else {
+						std::cout << "Unknown client fd: " << this->_pollFds[i].fd << std::endl;
+					}
 				}
 			}
 		}
@@ -44,13 +52,14 @@ void Server::ServerInit() {
 }
 
 void Server::ClearClients(int fd) {
-	for (int i = 0; i < this->_clients.size(); i++) {
+	std::cout << GREEN << "ClearClients called" << RESET << std::endl;
+	for (size_t i = 0; i < this->_clients.size(); i++) {
 		if (this->_clients[i].getSocketFd() == fd) {
 			this->_clients.erase(this->_clients.begin() + i);
 			break;
 		}
 	}
-	for (int i = 0; i < this->_pollFds.size(); i++) {
+	for (size_t i = 0; i < this->_pollFds.size(); i++) {
 		if (this->_pollFds[i].fd == fd) {
 			this->_pollFds.erase(this->_pollFds.begin() + i);
 			break;
@@ -59,28 +68,74 @@ void Server::ClearClients(int fd) {
 	std::cout << "Client [" << fd << "] cleared" << std::endl;
 }
 
-void Server::handleMessage(int fd) {
+void Server::parseCommand(Client *client, const std::string &line) {
+	std::cout << GREEN << "parseCommand called" << RESET << std::endl;
+
+	std::cout << "[parseCommand] fd=" << client->getSocketFd() << " line=" << line << std::endl;
+}
+
+
+void Server::handleMessage(int fd, Client *client) {
+	std::cout << GREEN << "handleMessage called" << RESET << std::endl;
+
 	char buffer[1024];
 	memset(buffer, 0, sizeof(buffer));
 	ssize_t bytesReceived = recv(fd, buffer, sizeof(buffer) - 1, 0);
 
-	if (bytesReceived == -1) {
-		std::cout << "Client disconnected: " << fd << std::endl;
+	if (bytesReceived <= 0) {
+		if (bytesReceived == 0) {
+			std::cout << "Client " << fd << " disconnected" << std::endl;
+		} else if (errno != EAGAIN && errno != EWOULDBLOCK) {
+			std::cout << "recv() error on client " << fd << ": " << strerror(errno) << std::endl;
+		}
 		ClearClients(fd);
 		close(fd);
-	} else {
-		buffer[bytesReceived] = '\0';
-		std::cout << "Client [" << fd << "] sent message: " << buffer << std::endl;
+		return;
 	}
+
+	if (bytesReceived > 512) {
+		std::cout << "Message is too long" << std::endl;
+		return;
+	}
+
+	buffer[bytesReceived] = '\0';
+
+	client->setReadbuffer(client->getReadbuffer() + buffer);
+
+	while(1) {
+		size_t pos = client->getReadbuffer().find("\r\n");
+		if (pos == std::string::npos) {
+			break;
+		}
+
+		std::string command = client->getReadbuffer().substr(0, pos);
+		client->setReadbuffer(client->getReadbuffer().substr(pos + 2));
+		client->addPendingCommand(command);
+	}
+	const std::vector<std::string> &pendingCommands = client->getPendingCommands();
+	for (size_t i = 0; i < pendingCommands.size(); i++) {
+			parseCommand(client, pendingCommands[i]);
+	}
+		//! Do this function later clearPendingCommands
+		// client->clearPendingCommands();
+}
+
+Client *Server::getClientByFd(int fd) {
+	for (size_t i = 0; i < _clients.size(); i++) {
+		if (_clients[i].getSocketFd() == fd) {
+			return &_clients[i];
+		}
+	}
+	return NULL;
 }
 
 void Server::acceptClient() {
-	std::cout << "acceptClient called" << std::endl;
+	std::cout << GREEN << "acceptClient called" << RESET << std::endl;
 
 	struct sockaddr_in clientAddr;
 	socklen_t clientAddrLen = sizeof(clientAddr);
 
-	int clientFd = accept(_serverSocketFd, (struct sockaddr *)&clientAddr, clientAddrLen);
+	int clientFd = accept(_serverSocketFd, (struct sockaddr *)&clientAddr, &clientAddrLen);
 	if (clientFd == -1) {
 		throw std::runtime_error("Failed to accept client: accept() failed");
 	}
@@ -106,15 +161,15 @@ void Server::acceptClient() {
 }
 
 void Server::CloseSockets() {
-	std::cout << "CloseSockets called" << std::endl;
-	for (int i = 0; i < this->_pollFds.size(); i++) {
+	std::cout << GREEN << "CloseSockets called" << RESET << std::endl;
+	for (size_t i = 0; i < this->_pollFds.size(); i++) {
 		close(this->_pollFds[i].fd);
 	}
 	this->_pollFds.clear();
 }
 
 void Server::CreateSocket() {
-	std::cout << "CreateSocket called" << std::endl;
+	std::cout << GREEN << "CreateSocket called" << RESET << std::endl;
 	int en = 1;
 	struct sockaddr_in add;
 	struct pollfd serverPollFd;

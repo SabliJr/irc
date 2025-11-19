@@ -1,15 +1,10 @@
-#include <iostream>
-#include <cstring>
-#include <cstdlib>
-#include <arpa/inet.h>
-#include <vector>
-#include <signal.h>
-#include <netinet/in.h>
-#include <fcntl.h>
-#include <poll.h>
+#include "Utils.hpp"
 
+#ifndef CLIENT_HPP
 #include "Client.hpp"
-#include "Channel.hpp"
+#endif
+
+class Client;
 
 class Server {
 	public:
@@ -17,6 +12,13 @@ class Server {
 		~Server();
 
 		static void SignalHandler(int signum);
+
+		void handleCAP(Client *client, const std::vector<std::string> &args);
+		void handleNICK(Client *client, const std::vector<std::string> &args);
+		void handlePASS(Client *client, const std::vector<std::string> &args);
+		void handleUSER(Client *client, const std::vector<std::string> &args);
+
+
 
 	private:
 		int _port;
@@ -31,6 +33,10 @@ class Server {
 		void ServerInit();
 		void CreateSocket();
 		void acceptClient();
-		void handleMessage(int fd);
+		void handleMessage(int fd, Client *client);
 		void CloseSockets();
+		void ClearClients(int fd);
+		void parseCommand(Client *client, const std::string &line);
+		Client *getClientByFd(int fd);
+
 };

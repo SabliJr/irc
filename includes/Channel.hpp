@@ -1,6 +1,10 @@
-#include <iostream>
-#include "Client.hpp";
-#include <vector>
+#include "Utils.hpp"
+
+#ifndef CLIENT_HPP
+#include "Client.hpp"
+#endif
+
+class Client;
 
 class Channel {
 	public:
@@ -32,3 +36,5 @@ class Channel {
 		std::string _password;
 		std::string _topic;
 };
+
+#endif
