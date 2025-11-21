@@ -2,7 +2,6 @@
 
 #ifndef CLIENT_HPP
 #include "Client.hpp"
-#endif
 
 class Client;
 

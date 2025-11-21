@@ -10,6 +10,8 @@ FILES = main.cpp \
 		Server.cpp \
 		Client.cpp \
 		Channel.cpp \
+		Exceptions.cpp \
+		commandsirc.cpp
 
 SRCS = $(addprefix $(SRCS_DIR), $(FILES))
 OBJS = $(addprefix $(OBJS_DIR), $(FILES:.cpp=.o))
