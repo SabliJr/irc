@@ -16,7 +16,7 @@ RUN apt-get update && \
     binutils \
     ssh \
     netcat \
-    fish \
+    zsh \
     libc6-dbg \
     gnupg \
     curl \
@@ -59,6 +59,18 @@ RUN update-alternatives --install /usr/bin/clang clang /usr/bin/clang-12 100 \
     && update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-10 100 \
     && update-alternatives --install /usr/bin/cc cc /usr/bin/clang-12 100 \
     && update-alternatives --install /usr/bin/c++ c++ /usr/bin/clang++-12 100
+
+# Install Starship prompt (non-interactive) and eza from official repo
+RUN curl -sS https://starship.rs/install.sh | sh -s -- -y && \
+    export DEBIAN_FRONTEND=noninteractive && \
+    apt-get update && \
+    apt-get install -y gpg && \
+    mkdir -p /etc/apt/keyrings && \
+    wget -qO- https://raw.githubusercontent.com/eza-community/eza/main/deb.asc | gpg --dearmor -o /etc/apt/keyrings/gierens.gpg && \
+    echo "deb [signed-by=/etc/apt/keyrings/gierens.gpg] http://deb.gierens.de stable main" | tee /etc/apt/sources.list.d/gierens.list && \
+    chmod 644 /etc/apt/keyrings/gierens.gpg /etc/apt/sources.list.d/gierens.list && \
+    apt-get update && \
+    apt-get install -y eza
 
 FROM base AS make_build
 # Setup and install Make
@@ -112,9 +124,24 @@ ENV PATH="$PATH:/opt/venv/bin"
 RUN python3 -m pip install --upgrade pip setuptools && \
     python3 -m pip install norminette
 
-# Remove welcome message Fish
-RUN fish -c "set -U fish_greeting"
+# Shell enhancements: zoxide, Starship, eza, Oh My Zsh
+RUN apt-get update && apt-get install --no-install-recommends -y zoxide && rm -rf /var/lib/apt/lists/*
+RUN curl -fsSL https://starship.rs/install.sh | sh -s -- -y && \
+    curl -fsSL https://raw.githubusercontent.com/eza-community/eza/main/install.sh | sh && \
+    ZSH="/root/.oh-my-zsh" RUNZSH=no CHSH=no KEEP_ZSHRC=yes sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" && \
+    if [ -f /root/.oh-my-zsh/templates/zshrc.zsh-template ]; then cp /root/.oh-my-zsh/templates/zshrc.zsh-template /root/.zshrc; fi && \
+    sed -i 's|^ZSH_THEME=.*|ZSH_THEME="robbyrussell"|' /root/.zshrc || true && \
+    grep -q 'plugins=' /root/.zshrc || echo 'plugins=(git)' >> /root/.zshrc && \
+    printf '\n# Initialize zoxide\n' >> /root/.zshrc && \
+    printf 'eval "$(zoxide init zsh)"\n' >> /root/.zshrc && \
+    printf '\n# Initialize starship prompt\n' >> /root/.zshrc && \
+    printf 'eval "$(starship init zsh)"\n' >> /root/.zshrc && \
+    printf '\n# eza aliases\n' >> /root/.zshrc && \
+    printf "alias ls='eza --icons=auto'\n" >> /root/.zshrc && \
+    printf "alias ll='eza -lh --group-directories-first --icons=auto'\n" >> /root/.zshrc && \
+    printf "alias la='eza -la --group-directories-first --icons=auto'\n" >> /root/.zshrc
+
 
 WORKDIR /app
 
-CMD ["/bin/fish"]
+CMD ["/bin/zsh"]

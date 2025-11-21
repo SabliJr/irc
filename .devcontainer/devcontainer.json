@@ -12,7 +12,12 @@
         "DoKca.42-ft-count-line"
       ],
       "settings": {
-        "terminal.integrated.defaultProfile.linux": "fish",
+        "terminal.integrated.defaultProfile.linux": "zsh",
+        "terminal.integrated.profiles.linux": {
+          "zsh": {
+            "path": "/bin/zsh"
+          }
+        },
         "editor.fontSize": 16,
         "editor.tabSize": 4,
         "editor.insertSpaces": false,

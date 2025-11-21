@@ -1,5 +1,7 @@
 #include "../includes/Server.hpp"
 
+//&			CONSTRUCTORS AND DESTRUCTOR
+
 Server::Server() : _port(0), _serverSocketFd(-1), _password("") {
 	//! REMOVE THE BS
 	std::cout << "Server constructor called" << std::endl;
@@ -16,6 +18,8 @@ Server::Server(int port, std::string password) : _port(port), _password(password
 
 Server::~Server() {}
 
+//€ 				MEMBER FUNCTIONS
+
 void Server::SignalHandler(int signum) {
 	std::cout << "Signal received: " << signum << std::endl;
 	_signal = true;
@@ -30,7 +34,7 @@ void Server::ServerInit() {
 		if (ret == -1 && this->_signal == false) {
 			throw std::runtime_error("poll() failed");
 		}
-		for (int i = 0; i < this->_pollFds.size(); i++) {
+		for (size_t i = 0; i < this->_pollFds.size(); i++) {
 			if (this->_pollFds[i].revents & POLLIN) {
 				if (this->_pollFds[i].fd == this->_serverSocketFd) {
 					acceptClient();
@@ -182,3 +186,6 @@ struct pollfd {
 5. listen()      → Start listening for connections
 6. accept()      → Accept incoming connections (next step)
 */
+//$
+//?            EXCEPTIONS
+//¥

@@ -1,5 +1,8 @@
+#ifndef CHANNEL_HPP
+#define CHANNEL_HPP
+
 #include <iostream>
-#include "Client.hpp";
+#include "Client.hpp"
 #include <vector>
 
 class Channel {
@@ -32,3 +35,5 @@ class Channel {
 		std::string _password;
 		std::string _topic;
 };
+
+#endif

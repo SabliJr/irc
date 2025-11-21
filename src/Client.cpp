@@ -1,10 +1,14 @@
 #include "../includes/Client.hpp"
 
+//&			CONSTRUCTORS AND DESTRUCTOR
+
 Client::Client(int fd) : _fd(fd), _ip(""), _nickname(""), _username(""), _authenticated(false), _channels(std::vector<std::string>()) {}
 
 Client::~Client() {}
 
-int Client::getSocketFd() {
+//$ 			SET AND GET FUNCTIONS
+
+int Client::getFd() {
 	return this->_fd;
 }
 
@@ -39,6 +43,8 @@ void Client::setUsername(std::string username) {
 void Client::setAuthenticated(bool authenticated) {
 	this->_authenticated = authenticated;
 }
+
+//€ 				MEMBER FUNCTIONS				
 
 void Client::addChannel(std::string channel) {
 	this->_channels.push_back(channel);

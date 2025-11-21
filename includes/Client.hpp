@@ -1,3 +1,6 @@
+#ifndef CLIENT_HPP
+#define CLIENT_HPP
+
 #include <iostream>
 
 class Client {
@@ -6,7 +9,7 @@ class Client {
 		~Client();
 
 		// Getters
-		int getSocketFd();
+		int getFd();
 		std::string getIp();
 		std::string getNickname();
 		std::string getUsername();
@@ -21,11 +24,14 @@ class Client {
 		void removeChannel(std::string channel);
 
 	private:
-		int _fd;
-		std::string _ip;
-
-		std::string _nickname;
-		std::string _username;
-		bool _authenticated;
-		std::vector<std::string> _channels;
+		int							_fd;
+		std::string					_hostname;
+		std::string					_username;
+		std::string					_nickname;
+		std::string					_ip;
+		bool						_authenticated;
+		bool						_operator;
+		std::vector<std::string>	_channels;
 };
+
+#endif

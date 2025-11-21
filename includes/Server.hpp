@@ -1,3 +1,6 @@
+#ifndef SERVER_HPP
+#define SERVER_HPP
+
 #include <iostream>
 #include <cstring>
 #include <cstdlib>
@@ -33,4 +36,7 @@ class Server {
 		void acceptClient();
 		void handleMessage(int fd);
 		void CloseSockets();
+		void ClearClients(int fd);
 };
+
+#endif
