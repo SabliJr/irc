@@ -37,4 +37,7 @@ fclean: clean
 
 re: fclean all
 
+x: all
+	./$(NAME) 8888 pa
+
 .PHONY: all clean fclean re

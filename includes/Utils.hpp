@@ -10,6 +10,7 @@
 #include <unistd.h>
 #include <sys/socket.h>
 #include <errno.h>
+#include <sstream>
 
 
 //Colors

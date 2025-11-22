@@ -1,0 +1,45 @@
+IRC Operator Features Roadmap
+1. Operator Management
+Add operator tracking to your Channel class
+Store a list/vector of operator clients (_operators)
+When a channel is created, make the first client an operator
+Implement functions:
+addOperator(Client*)
+removeOperator(Client*)
+isOperator(Client*)
+2. Operator Permissions
+Before executing operator commands (KICK, INVITE, MODE, TOPIC if +t), check if the sender is an operator in the channel
+If not, send error: 482 <nick> <channel> :You're not channel operator
+3. KICK Command
+Allow operators to remove users from a channel
+Broadcast KICK message to channel
+Remove client from channel
+4. INVITE Command
+Allow operators to invite users to invite-only channels
+Track invited users
+Send INVITE message to target user
+5. TOPIC Command
+Allow topic change by anyone, unless +t is set (then only operators)
+Broadcast topic change
+6. MODE Command
+Support channel modes:
++i (invite-only)
++t (topic only by ops)
++k (set/remove password)
++o (give/take operator)
++l (set/remove user limit)
+Parse mode string and parameters
+Update channel state and broadcast changes
+7. Testing and Validation
+Test all commands with multiple clients
+Check error handling and edge cases
+Ensure only operators can use restricted commands
+Suggested Implementation Order
+Operator management in Channel
+Operator permission checks
+KICK
+INVITE
+TOPIC (+t restriction)
+MODE (+i, +t, +k, +o, +l)
+Testing
+Let me know which step you want to start with, and I’ll help you with the code!
