@@ -11,6 +11,7 @@
 #include <sys/socket.h>
 #include <errno.h>
 #include <sstream>
+#include <map>
 
 
 //Colors

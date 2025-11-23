@@ -13,6 +13,11 @@ public:
 	~Server();
 
 	static void SignalHandler(int signum);
+		//! Operator commands
+	void handleKick(Client *client, const std::string &cmd);
+	void handleInvite(Client *client, const std::string &cmd);
+	void handleTopic(Client *client, const std::string &cmd);
+	void handleChannelMode(Client *client, const std::string &cmd);
 
 private:
 	Server();
@@ -39,10 +44,15 @@ private:
 	void handleMode(Client *client, const std::string &cmd);
 	void handlePing(Client *client, const std::string &cmd);
 
+	void operatorCommandRouter(Client *client, const std::string &cmd);
+
 
 	void handleRegistrationMessage(Client &client, const std::string &cmd);
 	void commandRouter(Client *client, const std::string &cmd);
 	void sendNonBlockingCommand(int fd, const std::string &message);
+	void sendNamesList(Client *client, Channel *channel);
+	bool canJoinChannel(Channel &channel, Client *client, const std::string &password);
+
 
 
 	int _port;
@@ -50,7 +60,7 @@ private:
 	std::string _password;
 	static bool _signal;
 	std::vector<struct pollfd> _pollFds;
-	std::vector<Client> _clients;
+	std::map<int, Client> _clients;
 	std::vector<Channel> _channels;
 };
 
