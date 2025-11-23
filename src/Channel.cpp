@@ -97,11 +97,22 @@ void Channel::setMode(std::string modeStr, std::string param, Client *client) {
     } else if (modeStr == "-t") {
         this->setTopicProtected(false);
     } else if (modeStr == "+o") {
-        // Add operator
-        this->addOperator(client);
+        (void)client;
+        for (size_t i = 0; i < _clients.size(); i++) {
+            if (_clients[i]->getNickname() == param) {
+                this->addOperator(_clients[i]);
+                return;
+            }
+        }
     } else if (modeStr == "-o") {
-        // Remove operator
-        this->removeOperator(client);
+        (void)client;
+        // FIX: Find the client named 'param' and remove THEM
+        for (size_t i = 0; i < _clients.size(); i++) {
+            if (_clients[i]->getNickname() == param) {
+                this->removeOperator(_clients[i]);
+                return;
+            }
+        }
     } else if (modeStr == "+k") {
         // Set password
         this->setPassword(param);

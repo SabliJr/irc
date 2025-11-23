@@ -15,12 +15,15 @@ class Channel {
 		//! PUBLIC METHODS
 		void 					addClient(Client *client);
 		void 					removeClient(Client *client);
+
 		void 					addOperator(Client *client);
 		void 					removeOperator(Client *client);
 		bool 					isOperator(Client *client);
+		
 		void					addInvitedClient(Client* client);
-		bool					isInvited(Client* client) const;
 		void					removeInvitedClient(Client* client);
+		bool					isInvited(Client* client) const;
+		
 		void 					broadcast(const std::string &message, Client* exclude);
 
 		//! SETTERS

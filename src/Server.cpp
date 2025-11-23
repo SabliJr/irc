@@ -137,27 +137,28 @@ void Server::clearClients(int fd)
 */
 bool Server::canJoinChannel(Channel &channel, Client *client, const std::string &password)
 {
-	// +i mode
-	if (channel.isInviteOnly() && !channel.isInvited(client)) {
-		std::string errorMsg = "473 " + client->getNickname() + " " + channel.getName() + " :Cannot join channel (+i)\r\n";
-		sendNonBlockingCommand(client->getSocketFd(), errorMsg);
-		return false;
-	}
+    // +i mode - Invite-only
+    if (channel.isInviteOnly() && !channel.isInvited(client)) {
+        std::string errorMsg = "473 " + client->getNickname() + " " + channel.getName() + " :Cannot join channel (+i)\r\n";
+        sendNonBlockingCommand(client->getSocketFd(), errorMsg);
+        return false;
+    }
 
-	// +k mode
-	if (channel.isPasswordProtected() && channel.getPassword() != password) {
-		std::string errorMsg = "475 " + client->getNickname() + " " + channel.getName() + " :Cannot join channel (+k)\r\n";
-		sendNonBlockingCommand(client->getSocketFd(), errorMsg);
-		return false;
-	}
+    // +k mode - Password protected
+    if (!channel.getPassword().empty() && channel.getPassword() != password) {
+        std::string errorMsg = "475 " + client->getNickname() + " " + channel.getName() + " :Cannot join channel (+k) - Bad key\r\n";
+        sendNonBlockingCommand(client->getSocketFd(), errorMsg);
+        return false;
+    }
 
-	// +l mode
-	if (channel.isUserLimitEnabled() && channel.getClientCount() >= channel.getMaxUsers()) {
-		std::string errorMsg = "471 " + client->getNickname() + " " + channel.getName() + " :Cannot join channel (+l)\r\n";
-		sendNonBlockingCommand(client->getSocketFd(), errorMsg);
-		return false;
-	}
-	return true;
+    // +l mode - User limit
+    if (channel.getMaxUsers() > 0 && (int)channel.getClients().size() >= channel.getMaxUsers()) {
+        std::string errorMsg = "471 " + client->getNickname() + " " + channel.getName() + " :Cannot join channel (+l) - Channel is full\r\n";
+        sendNonBlockingCommand(client->getSocketFd(), errorMsg);
+        return false;
+    }
+    
+    return true;
 }
 
 struct CommandHandler {
@@ -194,6 +195,7 @@ void Server::handleJoin(Client *client, const std::string &cmd)
                 return;
             }
             this->_channels[i].addClient(client);
+			this->_channels[i].removeInvitedClient(client); // Remove from invited list upon joining
             std::string joinMsg = ":" + client->getNickname() + " JOIN " + channelName + "\r\n";
             this->_channels[i].broadcast(joinMsg, NULL); // Broadcast to all including the joiner
             
@@ -287,16 +289,30 @@ void Server::handlePart(Client *client, const std::string &cmd)
 
 void Server::handleMode(Client *client, const std::string &cmd)
 {
-	std::cout << GREEN << "[LOGS]" << RESET << "handleMode called: " << cmd << std::endl;
-    // Silently acknowledge MODE, e.g. MODE <nick> +i
-    // You can send a reply or do nothing
-    // Example: send current mode
+    std::cout << GREEN << "[LOGS]" << RESET << "handleMode called: " << cmd << std::endl;
+
+    std::istringstream iss(cmd);
+    std::string command, target;
+    iss >> command >> target;
+
+    // Check if the target is a channel
+    if (!target.empty() && target[0] == '#')
+    {
+        // It is a channel mode (e.g., MODE #channel +o nick)
+        // Delegate to your operator logic
+        handleChannelMode(client, cmd);
+    }
+    else
+    {
 	(void)cmd; // To avoid unused parameter warning
     std::string reply = ":ircserv 324 " + client->getNickname() + " " + client->getNickname() + " +i\r\n";\
 
 	//! Use sendNonBlockingCommand instead?
 	sendNonBlockingCommand(client->getSocketFd(), reply);
+    }
 }
+
+
 
 /* TOPIC
 To VIEW - /topic #channel
@@ -304,44 +320,57 @@ To SET - /topic #channel New topic here -> SERVER RECEIVES: TOPIC #channel :New 
 */
 void Server::handleTopic(Client *client, const std::string &cmd)
 {
-	std::cout << GREEN << "[LOGS]" << RESET << "handleTopic called: " << cmd << std::endl;
+    std::cout << GREEN << "[LOGS]" << RESET << "handleTopic called: " << cmd << std::endl;
 
-	std::istringstream iss(cmd);
-	std::string command, channelName, topic;
-	iss >> command >> channelName;
+    std::istringstream iss(cmd);
+    std::string command, channelName, topic;
+    iss >> command >> channelName;
 
-	size_t topicPos = cmd.find(" :", command.find(channelName));
-	if (topicPos != std::string::npos) {
-		topic = cmd.substr(topicPos + 2); // Skip " :"
-	} else {
-		topic = ""; // No topic provided, just viewing
-	}
+    // Fix: Find the channel name position in the command, then look for the topic after it
+    size_t channelPos = cmd.find(channelName);
+    size_t topicPos = std::string::npos;
+    bool isSetting = false;
 
-	Channel* channel = NULL;
-	for (size_t i = 0; i < this->_channels.size(); i++) {
-		if (this->_channels[i].getName() == channelName) {
-			channel = &this->_channels[i];
-			break;
-		}
-	}
-	if (!channel) {
-		std::string errorMsg = "403 " + client->getNickname() + " " + channelName + " :No such channel\r\n";
-		sendNonBlockingCommand(client->getSocketFd(), errorMsg);
-		return;
-	}
+    if (channelPos != std::string::npos) {
+        topicPos = cmd.find(" :", channelPos + channelName.length());
+    }
 
-	if (topic.empty()) { //! View only
-		std::string reply = "332 " + client->getNickname() + " " + channelName + " :" + channel->getTopic() + "\r\n";
-		sendNonBlockingCommand(client->getSocketFd(), reply);
-		return;
-	}
+    if (topicPos != std::string::npos) {
+        topic = cmd.substr(topicPos + 2); // Skip " :"
+        isSetting = true;
+    }
 
-	// Check +t is set
-	if (channel->isTopicProtected() && !channel->isOperator(client)) {
-		std::string errorMsg = "482 " + client->getNickname() + " " + channelName + " :You're not channel operator\r\n";
-		sendNonBlockingCommand(client->getSocketFd(), errorMsg);
-		return;
-	}
+    Channel* channel = NULL;
+    for (size_t i = 0; i < this->_channels.size(); i++) {
+        if (this->_channels[i].getName() == channelName) {
+            channel = &this->_channels[i];
+            break;
+        }
+    }
+    if (!channel) {
+        std::string errorMsg = "403 " + client->getNickname() + " " + channelName + " :No such channel\r\n";
+        sendNonBlockingCommand(client->getSocketFd(), errorMsg);
+        return;
+    }
+
+    // Fix: Use isSetting flag instead of checking if topic is empty
+    if (!isSetting) { //! View only
+        if (channel->getTopic().empty()) {
+            std::string reply = "331 " + client->getNickname() + " " + channelName + " :No topic is set\r\n";
+            sendNonBlockingCommand(client->getSocketFd(), reply);
+        } else {
+            std::string reply = "332 " + client->getNickname() + " " + channelName + " :" + channel->getTopic() + "\r\n";
+            sendNonBlockingCommand(client->getSocketFd(), reply);
+        }
+        return;
+    }
+
+    // Check +t is set
+    if (channel->isTopicProtected() && !channel->isOperator(client)) {
+        std::string errorMsg = "482 " + client->getNickname() + " " + channelName + " :You're not channel operator\r\n";
+        sendNonBlockingCommand(client->getSocketFd(), errorMsg);
+        return;
+    }
 
 	channel->setTopic(topic);
 	std::string topicMsg = ":" + client->getNickname() + " TOPIC " + channelName + " :" + topic + "\r\n";
@@ -534,6 +563,25 @@ void Server::handleChannelMode(Client *client, const std::string &cmd)
 		sendNonBlockingCommand(client->getSocketFd(), errorMsg);
 		return;
 	}
+
+	    // Fix: Validate that the target user exists in the channel for +o/-o
+    if (modeStr == "+o" || modeStr == "-o") {
+        if (param.empty()) return; // Ignore if no nickname provided
+
+        bool found = false;
+        std::vector<Client*> chClients = channel->getClients();
+        for (size_t i = 0; i < chClients.size(); i++) {
+            if (chClients[i]->getNickname() == param) {
+                found = true;
+                break;
+            }
+        }
+        if (!found) {
+            std::string errorMsg = "441 " + client->getNickname() + " " + param + " " + channelName + " :They aren't on that channel\r\n";
+            sendNonBlockingCommand(client->getSocketFd(), errorMsg);
+            return;
+        }
+    }
 	channel->setMode(modeStr, param, client);
 
 	std::string modeMsg = ":" + client->getNickname() + " MODE " + channelName + " " + modeStr;
@@ -565,20 +613,24 @@ void Server::commandRouter(Client *client, const std::string &cmd)
 		{"PRIVMSG", &Server::handlePrivmsg},
 		{"PART", &Server::handlePart},
 		//? Optionnal to silently ignore the commands we dont need to handle
-		{"MODE", &Server::handleMode},
+		{"MODE", &Server::handleMode}, // Handles users and Channel modes
 		{"PING", &Server::handlePing},
+		//! Operator commands
+		{"KICK", &Server::handleKick},
+		{"INVITE", &Server::handleInvite},
+		{"TOPIC", &Server::handleTopic},
 	};
 
-	for (size_t i = 0; i < sizeof(handlers)/sizeof(handlers[0]); i++)
-	{
-		if (strncmp(cmd.c_str(), handlers[i].command.c_str(), handlers[i].command.length()) == 0) {
-			(this->*handlers[i].handler)(client, cmd);
-			return;
-		}
-	}
+  for (size_t i = 0; i < sizeof(handlers)/sizeof(handlers[0]); i++)
+    {
+        if (strncmp(cmd.c_str(), handlers[i].command.c_str(), handlers[i].command.length()) == 0) {
+            (this->*handlers[i].handler)(client, cmd);
+            return;
+        }
+    }
 
-	std::string errorMsg = "421 " + client->getNickname() + " " + cmd.substr(0, cmd.find(' ')) + " :Unknown command\r\n";
-	sendNonBlockingCommand(client->getSocketFd(), errorMsg);
+    std::string errorMsg = "421 " + client->getNickname() + " " + cmd.substr(0, cmd.find(' ')) + " :Unknown command\r\n";
+    sendNonBlockingCommand(client->getSocketFd(), errorMsg);
 }
 
 void Server::sendNamesList(Client *client, Channel *channel)
