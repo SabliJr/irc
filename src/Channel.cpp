@@ -106,9 +106,6 @@ void Channel::addClient(Client *client) {
 }
 
 void Channel::removeClient(Client *client) {
-  std::cout << GREEN "[LOGS]" RED
-            << "Removing client from channel: " << this->_name << RESET
-            << std::endl;
   for (size_t i = 0; i < this->_clients.size(); i++) {
     if (this->_clients[i] == client) {
       this->_clients.erase(this->_clients.begin() + i);
@@ -117,12 +114,6 @@ void Channel::removeClient(Client *client) {
   }
   this->_clientCount--;
   client->removeChannel(this->_name);
-  std::cout << GREEN << "[LOGS]" << RESET;
-  this->debugPrintClients();
-  std::cout << RESET;
-  std::cout << GREEN << "[LOGS]" << RESET;
-  this->debugPrintOperators();
-  std::cout << RESET;
 }
 
 void Channel::addInvitedClient(Client *client) {
