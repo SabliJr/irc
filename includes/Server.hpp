@@ -43,6 +43,7 @@ private:
 	//! Command we dont need to handle for the project but to silently ignore them
 	void handleMode(Client *client, const std::string &cmd);
 	void handlePing(Client *client, const std::string &cmd);
+	void handleWho(Client *client, const std::string &cmd);
 
 	void operatorCommandRouter(Client *client, const std::string &cmd);
 

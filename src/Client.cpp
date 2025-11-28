@@ -88,6 +88,15 @@ void Client::addChannel(std::string channel) {
 	this->_channels.push_back(channel);
 }
 
+void Client::removeChannel(std::string channel) {
+	for (size_t i = 0; i < this->_channels.size(); i++) {
+		if (this->_channels[i] == channel) {
+			this->_channels.erase(this->_channels.begin() + i);
+			break;
+		}
+	}
+}
+
 std::vector<std::string> Client::getPendingCommands() {
 	return this->_pending_commands;
 }
