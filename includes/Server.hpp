@@ -27,7 +27,7 @@ private:
 	void acceptClient();
 	void handleMessage(int fd, Client *client);
 	void closeSockets();
-	void clearClients(int fd);
+	void clearClient(int fd);
 	// void parseCommand(Client *client, const std::string &line);
 	Client *getClientByFd(int fd);
 
