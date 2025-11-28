@@ -25,7 +25,6 @@ bool check_args(int ac, char **av)
 		std::cout << "Password is empty" << std::endl;
 		return false;
 	}
-	std::cout << "Arguments are valid" << std::endl;
 	return true;
 }
 
@@ -42,8 +41,7 @@ int main(int ac, char **av)
 		Server ser(atoi(av[1]), av[2]);
 
 	} catch (const std::exception &e) {
-		std::cout << "Error: " << e.what() << std::endl;
-		std::cout << "DO THE NECESSARY CLEANUP" << std::endl;
+		std::cout << RED "Error: " << e.what() << RESET "\n" << std::endl;
 		return 1;
 	}
 

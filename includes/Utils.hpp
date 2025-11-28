@@ -22,4 +22,9 @@
 #define MAGENTA "\033[35m"
 #define CYAN "\033[36m"
 #define WHITE "\033[37m"
+#define BOLD "\033[1m"
+#define BOLDGREEN "\033[1;32m"
+#define BOLDMAGENTA "\033[1;35m"
+#define BOLDBLUE "\033[1;34m"
+
 #define RESET "\033[0m"
