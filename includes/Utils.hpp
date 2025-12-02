@@ -1,20 +1,19 @@
-#include <iostream>
-#include <vector>
-#include <cstring>
-#include <cstdlib>
 #include <arpa/inet.h>
-#include <signal.h>
-#include <netinet/in.h>
-#include <fcntl.h>
-#include <poll.h>
-#include <unistd.h>
-#include <sys/socket.h>
+#include <cstdlib>
+#include <cstring>
 #include <errno.h>
-#include <sstream>
+#include <fcntl.h>
+#include <iostream>
 #include <map>
+#include <netinet/in.h>
+#include <poll.h>
+#include <signal.h>
+#include <sstream>
+#include <sys/socket.h>
+#include <unistd.h>
+#include <vector>
 
-
-//Colors
+// Colors
 #define RED "\033[31m"
 #define GREEN "\033[32m"
 #define YELLOW "\033[33m"
@@ -27,8 +26,11 @@
 #define BOLDMAGENTA "\033[1;35m"
 #define BOLDBLUE "\033[1;34m"
 #define BOLDYELLOW "\033[1;33m"
+#define BOLDRED "\033[1;31m"
 
 #define RESET "\033[0m"
+
+// Below are common irssi user commands
 
 /* MODE
 /mode #channel +i
@@ -55,4 +57,23 @@ MODE - Change the channel’s mode:
 - k: Set/remove the channel key (password)
 - o: Give/take channel operator privilege
 - l: Set/remove the user limit to channel
+*/
+
+//!     /connect localhost 8888 pa
+
+/*
+* how to send a file between users
+echo hello > /tmp/hi.txt
+dd if=/dev/zero of=/tmp/big.bin bs=1M count=3000
+
+/dcc send koko /tmp/hi.txt
+/dcc get momo hi.txt
+
+/ctcp koko VERSION
+
+BIG FILE
+/dcc send koko /tmp/big.bin
+/dcc get momo big.bin
+/dcc list
+/dcc close SEND 0
 */

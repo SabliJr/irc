@@ -46,5 +46,8 @@
 		"stdexcept": "cpp",
 		"streambuf": "cpp",
 		"typeinfo": "cpp"
-	}
+	},
+	"lldb.showDisassembly": "auto",
+	"lldb.dereferencePointers": true,
+	"lldb.consoleMode": "commands"
 }

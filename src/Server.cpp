@@ -19,7 +19,8 @@ Server::Server(int port, std::string password)
 Server::~Server() {}
 
 void Server::SignalHandler(int signum) {
-  std::cout << BLUE << "Signal received: " << signum << RESET << std::endl;
+  std::cout << BOLDRED << "[" RESET BOLD "SIGNAL" BOLDRED "] " << RESET
+            << "Signal received: " << signum << RESET << std::endl;
   _signal = true;
 }
 
@@ -28,6 +29,7 @@ void Server::serverInit() {
             << "\n"
                "[" RESET BOLD "LOGS" BOLDGREEN "] "
             << RESET << "Initializing server..." << std::endl;
+  initBot(); // Added
   createSocket();
 
   while (this->_signal == false) {
@@ -55,6 +57,8 @@ void Server::serverInit() {
 }
 
 void Server::sendNonBlockingCommand(int fd, const std::string &message) {
+  if (fd == -2)
+    return;
   ssize_t totalSent = 0;
   ssize_t messageLength = message.length();
   const char *msgPtr = message.c_str();
@@ -106,17 +110,6 @@ void Server::clearClient(int fd) {
   this->_clients.erase(fd);
   close(fd);
 }
-
-// void Server::parseCommand(Client *client, const std::string &line)
-// {
-// 	// std::cout << GREEN << "parseCommand called" << RESET << std::endl;
-
-// 	// std::cout << "[parseCommand] fd=" << client->getSocketFd() << "
-// line=" << line << std::endl; 	(void)client;
-
-// 	// (void)line;
-// 	std::cout << line << std::endl;
-// }
 
 /* Checking before adding to a channel
 1 check if +i mode is set and if the client is invited
@@ -227,6 +220,24 @@ void Server::handlePrivmsg(Client *client, const std::string &cmd) {
   if (!message.empty() && message[0] == ':')
     message = message.substr(1);
 
+  if (!message.empty() && message[0] == '!')
+    handleBotCommand(client, target, message); // Added
+
+  // Extend PRIVMSG to users
+  if (!target.empty() && target[0] != '#') {
+    Client *dst = getClientByNick(target);
+    if (!dst) {
+      std::string err = "401 " + client->getNickname() + " " + target +
+                        " :No such nick/channel\r\n";
+      sendNonBlockingCommand(client->getSocketFd(), err);
+      return;
+    }
+    std::string line = ":" + client->getNickname() + "!" +
+                       client->getUsername() + "@" + client->getIp() +
+                       " PRIVMSG " + target + " :" + message + "\r\n";
+    sendNonBlockingCommand(dst->getSocketFd(), line);
+    return;
+  }
   // Check if target is a channel (starts with '#')
   if (!target.empty() && target[0] == '#') {
     for (size_t i = 0; i < this->_channels.size(); i++) {
@@ -243,6 +254,29 @@ void Server::handlePrivmsg(Client *client, const std::string &cmd) {
         "401 " + client->getNickname() + " " + target + " :No such channel\r\n";
     sendNonBlockingCommand(client->getSocketFd(), errorMsg);
   }
+}
+
+void Server::handleNotice(Client *client, const std::string &cmd) {
+  size_t first = cmd.find(' ');
+  if (first == std::string::npos)
+    return;
+  size_t second = cmd.find(' ', first + 1);
+  if (second == std::string::npos)
+    return;
+
+  std::string target = cmd.substr(first + 1, second - first - 1);
+  std::string message = cmd.substr(second + 1);
+  if (!message.empty() && message[0] == ':')
+    message = message.substr(1);
+
+  Client *dst = getClientByNick(target);
+  if (!dst)
+    return; // silently ignore per NOTICE semantics
+
+  std::string line = ":" + client->getNickname() + "!" + client->getUsername() +
+                     "@" + client->getIp() + " NOTICE " + target + " :" +
+                     message + "\r\n";
+  sendNonBlockingCommand(dst->getSocketFd(), line);
 }
 
 void Server::handlePart(Client *client, const std::string &cmd) {
@@ -287,7 +321,7 @@ void Server::handleMode(Client *client, const std::string &cmd) {
     // Delegate to your operator logic
     handleChannelMode(client, cmd);
   } else {
-    (void)cmd; // To avoid unused parameter warning
+    (void)cmd;
     std::string reply = ":ircserv 324 " + client->getNickname() + " " +
                         client->getNickname() + " +i\r\n";
 
@@ -625,14 +659,15 @@ void Server::commandRouter(Client *client, const std::string &cmd) {
       {"JOIN", &Server::handleJoin},
       {"PRIVMSG", &Server::handlePrivmsg},
       {"PART", &Server::handlePart},
-      //? Optionnal to silently ignore the commands we dont need to handle
       {"MODE", &Server::handleMode}, // Handles users and Channel modes
       {"PING", &Server::handlePing},
+      {"WHO", &Server::handleWho},
+      {"NOTICE", &Server::handleNotice},
+      {"CAP", &Server::handleCap},
       //! Operator commands
       {"KICK", &Server::handleKick},
       {"INVITE", &Server::handleInvite},
       {"TOPIC", &Server::handleTopic},
-      {"WHO", &Server::handleWho},
   };
 
   for (size_t i = 0; i < sizeof(handlers) / sizeof(handlers[0]); i++) {
@@ -804,7 +839,7 @@ void Server::handleRegistrationMessage(Client &client, const std::string &cmd) {
     }
     client.setAuthenticated(true);
     std::string welcomeMsg = "001 " + client.getNickname() +
-                             " :" BOLDGREEN "Welcome to the IRC server" RESET
+                             " :" BOLDYELLOW "Welcome to the IRC server" RESET
                              "\r\n";
     sendNonBlockingCommand(client.getSocketFd(), welcomeMsg);
   }
@@ -950,6 +985,16 @@ Client *Server::getClientByFd(int fd) {
   return NULL;
 }
 
+Client *Server::getClientByNick(const std::string &nick) {
+  for (std::map<int, Client>::iterator it = _clients.begin();
+       it != _clients.end(); ++it) {
+    if (it->second.getNickname() == nick) {
+      return &(it->second);
+    }
+  }
+  return NULL;
+}
+
 void Server::acceptClient() {
 
   struct sockaddr_in clientAddr;
@@ -1036,4 +1081,54 @@ void Server::createSocket() {
   std::cout << BOLDGREEN "\nServer listening on 0.0.0.0:" << this->_port
             << RESET "\n"
             << std::endl;
+}
+
+void Server::initBot() {
+  Client bot(-2);
+  bot.setNickname("MEE6");
+  bot.setUsername("bot");
+  bot.setIp("127.0.0.1");
+  bot.setAuthenticated(true);
+  _clients.insert(std::make_pair(-2, bot));
+  std::cout << BOLDGREEN << "[" RESET BOLD "LOGS" BOLDGREEN "] " << RESET
+            << "MEE6 initialized" << std::endl;
+}
+
+void Server::handleBotCommand(Client *client, const std::string &target,
+                              const std::string &message) {
+  if (message.empty() || message[0] != '!')
+    return;
+
+  std::string reply = "";
+  if (message == "!hello") {
+    reply = "Hello " + client->getNickname() +
+            "! I am MEE6, your friendly AI assistant.";
+  } else if (message == "!42") {
+    reply = "The answer to life, the universe and everything.";
+  } else if (message == "!server") {
+    reply = "This is a custom IRC server.";
+  } else {
+    return;
+  }
+
+  std::string dst = target;
+  if (target == "MEE6") {
+    dst = client->getNickname(); // Reply in private
+  }
+
+  std::string fullMsg =
+      ":MEE6!bot@127.0.0.1 PRIVMSG " + dst + " :" + reply + "\r\n";
+
+  if (dst[0] == '#') {
+    // Broadcast to channel
+    for (size_t i = 0; i < _channels.size(); i++) {
+      if (_channels[i].getName() == dst) {
+        _channels[i].broadcast(fullMsg, NULL);
+        return;
+      }
+    }
+  } else {
+    // PM
+    sendNonBlockingCommand(client->getSocketFd(), fullMsg);
+  }
 }
