@@ -61,17 +61,25 @@ MODE - Change the channel’s mode:
 
 //!     /connect localhost 8888 pa
 
+/* Bot command
+/msg MEE6 !hello
+!hello
+!42
+!server
+*/
+
+
 /*
 * how to send a file between users
 echo hello > /tmp/hi.txt
-dd if=/dev/zero of=/tmp/big.bin bs=1M count=3000
 
 /dcc send koko /tmp/hi.txt
 /dcc get momo hi.txt
 
 /ctcp koko VERSION
 
-BIG FILE
+*BIG FILE
+dd if=/dev/zero of=/tmp/big.bin bs=1M count=3000
 /dcc send koko /tmp/big.bin
 /dcc get momo big.bin
 /dcc list

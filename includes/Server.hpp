@@ -67,4 +67,6 @@ private:
   std::vector<Channel> _channels;
 };
 
+#define BOTNICK "MEE5"
+
 #endif

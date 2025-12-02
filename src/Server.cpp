@@ -1085,13 +1085,13 @@ void Server::createSocket() {
 
 void Server::initBot() {
   Client bot(-2);
-  bot.setNickname("MEE6");
+  bot.setNickname(BOTNICK);
   bot.setUsername("bot");
   bot.setIp("127.0.0.1");
   bot.setAuthenticated(true);
   _clients.insert(std::make_pair(-2, bot));
   std::cout << BOLDGREEN << "[" RESET BOLD "LOGS" BOLDGREEN "] " << RESET
-            << "MEE6 initialized" << std::endl;
+            << BOTNICK " initialized" << std::endl;
 }
 
 void Server::handleBotCommand(Client *client, const std::string &target,
@@ -1102,7 +1102,7 @@ void Server::handleBotCommand(Client *client, const std::string &target,
   std::string reply = "";
   if (message == "!hello") {
     reply = "Hello " + client->getNickname() +
-            "! I am MEE6, your friendly AI assistant.";
+            "! I am " BOTNICK ", your friendly AI assistant.";
   } else if (message == "!42") {
     reply = "The answer to life, the universe and everything.";
   } else if (message == "!server") {
@@ -1112,12 +1112,12 @@ void Server::handleBotCommand(Client *client, const std::string &target,
   }
 
   std::string dst = target;
-  if (target == "MEE6") {
+  if (target == BOTNICK) {
     dst = client->getNickname(); // Reply in private
   }
 
   std::string fullMsg =
-      ":MEE6!bot@127.0.0.1 PRIVMSG " + dst + " :" + reply + "\r\n";
+      ":" BOTNICK "!bot@127.0.0.1 PRIVMSG " + dst + " :" + reply + "\r\n";
 
   if (dst[0] == '#') {
     // Broadcast to channel
