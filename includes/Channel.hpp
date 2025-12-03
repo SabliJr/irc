@@ -51,11 +51,6 @@ public:
   bool isPasswordProtected();
   bool isUserLimitEnabled();
 
-  //! DEBUG METHODS
-  void debugPrintClients();
-  void debugPrintOperators();
-  void debugPrintInvitedClients();
-
 private:
   std::string _name;
   std::string _password;
@@ -67,7 +62,7 @@ private:
   bool _passwordProtected;
   bool _userLimitEnabled;
   std::vector<Client *> _clients;
-  std::vector<Client *> _invitedClients; // For +i mode
+  std::vector<Client *> _invitedClients;
   std::vector<Client *> _operators;
 };
 

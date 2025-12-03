@@ -27,7 +27,6 @@ private:
   void handleMessage(int fd, Client *client);
   void closeSockets();
   void clearClient(int fd);
-  // void parseCommand(Client *client, const std::string &line);
   Client *getClientByFd(int fd);
   Client *getClientByNick(const std::string &nick);
 
@@ -67,6 +66,6 @@ private:
   std::vector<Channel> _channels;
 };
 
-#define BOTNICK "MEE5"
+#define BOTNICK "MEE6"
 
 #endif

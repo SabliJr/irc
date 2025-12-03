@@ -27,61 +27,65 @@
 #define BOLDBLUE "\033[1;34m"
 #define BOLDYELLOW "\033[1;33m"
 #define BOLDRED "\033[1;31m"
-
 #define RESET "\033[0m"
 
-// Below are common irssi user commands
-
-/* MODE
-/mode #channel +i
-/mode #channel -i
-/mode #channel +t
-/mode #channel +o nick
-/mode #channel -o nick
-/mode #channel +k password
-/mode #channel -k
-/mode #channel +l 10
-/mode #channel -l
-*/
-
-/* OPERATOR COMMANDS
-
-Always check if the client is an operator before executing these commands.
-
-KICK - Eject a client from the channel
-INVITE - Invite a client to a channel
-TOPIC - Change or view the channel topic
-MODE - Change the channel’s mode:
-- i: Set/remove Invite-only channel
-- t: Set/remove the restrictions of the TOPIC command to channeloperators
-- k: Set/remove the channel key (password)
-- o: Give/take channel operator privilege
-- l: Set/remove the user limit to channel
-*/
-
-//!     /connect localhost 8888 pa
-
-/* Bot command
-/msg MEE6 !hello
-!hello
-!42
-!server
-*/
-
+#define LOGS "sabli"
 
 /*
-* how to send a file between users
-echo hello > /tmp/hi.txt
+================================================================================
+                            IRSSI TEST COMMANDS CHEATSHEET
+================================================================================
 
-/dcc send koko /tmp/hi.txt
-/dcc get momo hi.txt
+1. CONNECTION
+	/connect localhost 8888 pa           (Connect with password 'pa')
+	/connect localhost 8888 pa myNick    (Connect with specific nickname)
 
-/ctcp koko VERSION
+2. CHANNEL OPERATIONS
+	/join #general                       (Join a channel)
+	/join #secret myPassword             (Join a channel with password/key)
+	/part #general                       (Leave a channel)
 
-*BIG FILE
-dd if=/dev/zero of=/tmp/big.bin bs=1M count=3000
-/dcc send koko /tmp/big.bin
-/dcc get momo big.bin
-/dcc list
-/dcc close SEND 0
+3. MESSAGING
+	Hello everyone!                      (Public Message - type in channel)
+	/msg otherUser Hello there!          (Private Message / DM)
+	/notice otherUser This is a notice   (Notice)
+
+4. OPERATOR COMMANDS (Requires @ status)
+	/kick #general badUser               (Kick a user)
+	/kick #general badUser Get out!      (Kick with reason)
+	/invite otherUser #general           (Invite user - useful for +i)
+	/topic #general New Topic            (Change Topic)
+	/topic #general                      (View Topic)
+
+5. CHANNEL MODES
+	/mode #general +o otherUser          (Make Operator)
+	/mode #general -o otherUser          (Remove Operator)
+	/mode #general +k secretpass         (Set Channel Password)
+	/mode #general -k                    (Remove Channel Password)
+	/mode #general +l 5                  (Set User Limit)
+	/mode #general -l                    (Remove User Limit)
+	/mode #general +i                    (Set Invite Only)
+	/mode #general -i                    (Remove Invite Only)
+	/mode #general +t                    (Set Topic Protection)
+	/mode #general -t                    (Remove Topic Protection)
+
+6. FILE TRANSFER (DCC)
+	/dcc send otherUser /path/to/file    (Send a file)
+	/dcc get myNick file.txt             (Receive a file)
+
+
+
+
+   * How to create a dummy file for testing:
+    echo hello > /tmp/hi.txt
+    dd if=/dev/zero of=/tmp/big.bin bs=1M count=10
+
+7. BOT COMMANDS (If implemented)
+	/msg MEE6 !hello
+	/msg MEE6 !42
+
+8. QUIT
+   /quit Bye everyone!
+================================================================================
 */
+

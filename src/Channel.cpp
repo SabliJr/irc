@@ -76,7 +76,6 @@ void Channel::setMode(std::string modeStr, std::string param, Client *client) {
     }
   } else if (modeStr == "-o") {
     (void)client;
-    // FIX: Find the client named 'param' and remove THEM
     for (size_t i = 0; i < _clients.size(); i++) {
       if (_clients[i]->getNickname() == param) {
         this->removeOperator(_clients[i]);
@@ -94,13 +93,12 @@ void Channel::setMode(std::string modeStr, std::string param, Client *client) {
     this->setMaxUsers(std::atoi(param.c_str()));
   } else if (modeStr == "-l") {
     // Unset user limit
-    this->setMaxUsers(0); // 0 means no limit
+    this->setMaxUsers(0);
   }
 }
 
 //! PUBLIC METHODS
 void Channel::addClient(Client *client) {
-  std::cout << "Adding client to channel: " << this->_name << std::endl;
   this->_clients.push_back(client);
   this->_clientCount++;
 }
@@ -162,7 +160,7 @@ bool Channel::isOperator(Client *client) {
 
 void Channel::broadcast(const std::string &message, Client *exclude) {
   for (size_t i = 0; i < this->_clients.size(); i++) {
-    if (this->_clients[i] != exclude) // Don't send to excluded client
+    if (this->_clients[i] != exclude)
     {
       ssize_t bytesSent = send(this->_clients[i]->getSocketFd(),
                                message.c_str(), message.length(), 0);
@@ -170,27 +168,5 @@ void Channel::broadcast(const std::string &message, Client *exclude) {
         std::cout << "Failed to broadcast message" << std::endl;
       }
     }
-  }
-}
-
-// DEBUG  METHODS
-void Channel::debugPrintClients() {
-  std::cout << "Clients in channel: " << this->_name << std::endl;
-  for (size_t i = 0; i < this->_clients.size(); i++) {
-    std::cout << this->_clients[i]->getNickname() << std::endl;
-  }
-}
-
-void Channel::debugPrintOperators() {
-  std::cout << "Operators in channel: " << this->_name << std::endl;
-  for (size_t i = 0; i < this->_operators.size(); i++) {
-    std::cout << this->_operators[i]->getNickname() << std::endl;
-  }
-}
-
-void Channel::debugPrintInvitedClients() {
-  std::cout << "Invited clients in channel: " << this->_name << std::endl;
-  for (size_t i = 0; i < this->_invitedClients.size(); i++) {
-    std::cout << this->_invitedClients[i]->getNickname() << std::endl;
   }
 }

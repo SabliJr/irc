@@ -1,7 +1,6 @@
 #include "../includes/Server.hpp"
 
     bool Server::_signal = false;
-// std::vector<Client> Server::_clients;
 
 Server::Server() : _port(0), _serverSocketFd(-1), _password("")
 {
@@ -12,9 +11,6 @@ Server::Server() : _port(0), _serverSocketFd(-1), _password("")
 Server::Server(int port, std::string password)
     : _port(port), _password(password)
 {
-  // std::cout << "Port: " << _port << std::endl;
-  // std::cout << "Password: " << _password << std::endl;
-
   serverInit();
 }
 
@@ -24,18 +20,22 @@ Server::~Server() {}
 
 void Server::SignalHandler(int signum)
 {
-  std::cout << BOLDRED << "[" RESET BOLD "SIGNAL" BOLDRED "] " << RESET
+  if (LOGS){
+  std::cout << BOLDRED << "\n[" RESET BOLD "SIGNAL" BOLDRED "] " << RESET
             << "Signal received: " << signum << RESET << std::endl;
+  }
   _signal = true;
 }
 
 void Server::serverInit()
 {
+  if (LOGS){
   std::cout << BOLDGREEN
             << "\n"
                "[" RESET BOLD "LOGS" BOLDGREEN "] "
             << RESET << "Initializing server..." << std::endl;
-  initBot(); // Added
+  }
+  initBot();
   createSocket();
 
   while (this->_signal == false)
@@ -80,7 +80,9 @@ void Server::sendNonBlockingCommand(int fd, const std::string &message)
   ssize_t messageLength = message.length();
   const char *msgPtr = message.c_str();
 
-  std::cout << BOLDBLUE "[" RESET BOLD "SEND" BOLDBLUE "] " RESET << message;
+  if (LOGS){
+    std::cout << BOLDBLUE "[" RESET BOLD "SEND" BOLDBLUE "] " RESET << message;
+  }
 
   while (totalSent < messageLength)
   {
@@ -89,16 +91,14 @@ void Server::sendNonBlockingCommand(int fd, const std::string &message)
     if (bytesSent == -1)
     {
       if (errno == EAGAIN || errno == EWOULDBLOCK)
-      {
-        // Socket is not ready for sending, try again later
+      { 
         continue;
       }
       else
       {
         std::cout << "send() failed in sendNonBlockingCommand: "
                   << strerror(errno) << std::endl;
-        //! Exit program cleanly
-        return;
+               return;
       }
     }
     totalSent += bytesSent;
@@ -107,22 +107,17 @@ void Server::sendNonBlockingCommand(int fd, const std::string &message)
 
 void Server::clearClient(int fd)
 {
-  // 1. Find the client pointer
   Client *clientToRemove = getClientByFd(fd);
   if (!clientToRemove)
     return;
 
-  // 2. Remove this client from ALL channels
   for (size_t i = 0; i < this->_channels.size(); i++)
   {
-    // You need a method in Channel to force remove a client by pointer
-    // regardless of whether they sent a PART command
     this->_channels[i].removeClient(clientToRemove);
     this->_channels[i].removeOperator(clientToRemove);
     this->_channels[i].removeInvitedClient(clientToRemove);
   }
 
-  // 3. Remove from pollfds
   for (size_t i = 0; i < this->_pollFds.size(); i++)
   {
     if (this->_pollFds[i].fd == fd)
@@ -132,20 +127,13 @@ void Server::clearClient(int fd)
     }
   }
 
-  // 4. Remove from clients list
   this->_clients.erase(fd);
   close(fd);
 }
 
-/* Checking before adding to a channel
-1 check if +i mode is set and if the client is invited
-2 check if +k mode is set and if the client provided the correct password
-3 check if +l mode is set and if the channel is full
-*/
 bool Server::canJoinChannel(Channel &channel, Client *client,
                             const std::string &password)
 {
-  // +i mode - Invite-only
   if (channel.isInviteOnly() && !channel.isInvited(client))
   {
     std::string errorMsg = "473 " + client->getNickname() + " " +
@@ -154,7 +142,6 @@ bool Server::canJoinChannel(Channel &channel, Client *client,
     return false;
   }
 
-  // +k mode - Password protected
   if (!channel.getPassword().empty() && channel.getPassword() != password)
   {
     std::string errorMsg = "475 " + client->getNickname() + " " +
@@ -164,7 +151,6 @@ bool Server::canJoinChannel(Channel &channel, Client *client,
     return false;
   }
 
-  // +l mode - User limit
   if (channel.getMaxUsers() > 0 &&
       (int)channel.getClients().size() >= channel.getMaxUsers())
   {
@@ -203,7 +189,6 @@ void Server::handleJoin(Client *client, const std::string &cmd)
     channelName = channelName.substr(0, passPos);
   }
 
-  // Check if channel already exists
   for (size_t i = 0; i < this->_channels.size(); i++)
   {
     if (this->_channels[i].getName() == channelName)
@@ -214,20 +199,18 @@ void Server::handleJoin(Client *client, const std::string &cmd)
       }
       this->_channels[i].addClient(client);
       this->_channels[i].removeInvitedClient(
-          client); // Remove from invited list upon joining
+          client);
       std::string joinMsg = ":" + client->getNickname() + "!" +
                             client->getUsername() + "@" + client->getIp() +
                             " JOIN " + channelName + "\r\n";
       this->_channels[i].broadcast(
-          joinMsg, NULL); // Broadcast to all including the joiner
+          joinMsg, NULL);
 
-      // Send names list to the joining client
       sendNamesList(client, &this->_channels[i]);
       return;
     }
   }
 
-  // If channel does not exist, create a new one and add the client
   Channel newChannel(channelName);
   newChannel.addClient(client);
   newChannel.addOperator(client);
@@ -238,7 +221,6 @@ void Server::handleJoin(Client *client, const std::string &cmd)
                         " JOIN " + channelName + "\r\n";
   this->_channels.back().broadcast(joinMsg, NULL);
 
-  // Send names list to the joining client
   sendNamesList(client, &this->_channels.back());
 }
 
@@ -259,9 +241,8 @@ void Server::handlePrivmsg(Client *client, const std::string &cmd)
     message = message.substr(1);
 
   if (!message.empty() && message[0] == '!')
-    handleBotCommand(client, target, message); // Added
+    handleBotCommand(client, target, message);
 
-  // Extend PRIVMSG to users
   if (!target.empty() && target[0] != '#')
   {
     Client *dst = getClientByNick(target);
@@ -278,7 +259,6 @@ void Server::handlePrivmsg(Client *client, const std::string &cmd)
     sendNonBlockingCommand(dst->getSocketFd(), line);
     return;
   }
-  // Check if target is a channel (starts with '#')
   if (!target.empty() && target[0] == '#')
   {
     for (size_t i = 0; i < this->_channels.size(); i++)
@@ -365,11 +345,8 @@ void Server::handleMode(Client *client, const std::string &cmd)
   std::string command, target;
   iss >> command >> target;
 
-  // Check if the target is a channel
   if (!target.empty() && target[0] == '#')
   {
-    // It is a channel mode (e.g., MODE #channel +o nick)
-    // Delegate to your operator logic
     handleChannelMode(client, cmd);
   }
   else
@@ -684,29 +661,25 @@ void Server::handleChannelMode(Client *client, const std::string &cmd)
     if (channel->getMaxUsers() > 0)
     {
       modes += "l";
-      std::ostringstream oss; // requires #include <sstream>
+      std::ostringstream oss; 
       oss << " " << channel->getMaxUsers();
       args += oss.str();
     }
 
-    // 324 RPL_CHANNELMODEIS
     std::string reply = ":ircserv 324 " + client->getNickname() + " " +
                         channelName + " " + modes + args + "\r\n";
     sendNonBlockingCommand(client->getSocketFd(), reply);
     return;
   }
 
-  // Listing ban mask(s): MODE #chan b
   if (modeStr == "b")
   {
-    // Empty list: just send RPL_ENDOFBANLIST
     std::string end = "368 " + client->getNickname() + " " + channelName +
                       " :End of channel ban list\r\n";
     sendNonBlockingCommand(client->getSocketFd(), end);
     return;
   }
 
-  // For actual changes, require operator
   if (!channel->isOperator(client))
   {
     std::string errorMsg = "482 " + client->getNickname() + " " + channelName +
@@ -715,11 +688,10 @@ void Server::handleChannelMode(Client *client, const std::string &cmd)
     return;
   }
 
-  // Fix: Validate that the target user exists in the channel for +o/-o
   if (modeStr == "+o" || modeStr == "-o")
   {
     if (param.empty())
-      return; // Ignore if no nickname provided
+      return;
 
     bool found = false;
     std::vector<Client *> chClients = channel->getClients();
@@ -804,26 +776,21 @@ void Server::sendNamesList(Client *client, Channel *channel)
 
   for (size_t i = 0; i < clients.size(); i++)
   {
-    // Add '@' prefix for operators
     if (channel->isOperator(clients[i]))
     {
       namesList += "@";
     }
     namesList += clients[i]->getNickname();
 
-    // Add space between names (not after the last one)
     if (i < clients.size() - 1)
     {
       namesList += " ";
     }
   }
 
-  // 353 RPL_NAMREPLY
   std::string reply = ":ircserv 353 " + client->getNickname() + " = " +
                       channel->getName() + " :" + namesList + "\r\n";
   sendNonBlockingCommand(client->getSocketFd(), reply);
-
-  // 366 RPL_ENDOFNAMES
   std::string endReply = ":ircserv 366 " + client->getNickname() + " " +
                          channel->getName() + " :End of /NAMES list\r\n";
   sendNonBlockingCommand(client->getSocketFd(), endReply);
@@ -894,9 +861,12 @@ void Server::handleWho(Client *client, const std::string &cmd)
 }
 void Server::handleMessage(int fd, Client *client)
 {
-  std::cout << BOLDYELLOW "\n["
-            << RESET BOLD "RECV" BOLDYELLOW "] ----------------" << RESET
-            << std::endl;
+  if (LOGS)
+  {
+    std::cout << BOLDYELLOW "\n["
+              << RESET BOLD "RECV" BOLDYELLOW "] ----------------" << RESET
+              << std::endl;
+  }
   char buffer[1024];
   memset(buffer, 0, sizeof(buffer));
   ssize_t bytesReceived = recv(fd, buffer, sizeof(buffer) - 1, 0);
@@ -905,7 +875,6 @@ void Server::handleMessage(int fd, Client *client)
   {
     if (bytesReceived == 0)
     {
-      std::cout << "Client " << fd << " disconnected" << std::endl;
       clearClient(fd);
     }
     else if (errno != EAGAIN && errno != EWOULDBLOCK)
@@ -935,8 +904,10 @@ void Server::handleMessage(int fd, Client *client)
     }
     std::string command = client->getReadbuffer().substr(0, pos);
     client->setReadbuffer(client->getReadbuffer().substr(pos + 2));
-    std::cout << BOLDMAGENTA "[" << RESET BOLD << "CMDS" << BOLDMAGENTA "] "
-              << RESET << command << std::endl;
+    if (LOGS){
+      std::cout << BOLDMAGENTA "[" << RESET BOLD << "CMDS" << BOLDMAGENTA "] "
+      << RESET << command << std::endl;
+    }
     if (!client->getAuthenticated())
     {
       handleRegistrationMessage(*client, command);
@@ -1019,37 +990,8 @@ void Server::handleCap(Client *client, const std::string &cmd)
   }
 }
 
-// void Server::handleCap(Client *client, const std::string &cmd) {
-//   const std::string target = client->getHasNick() ? client->getNickname() :
-//   "*"; if (cmd == "CAP LS" || cmd.find("CAP LS") == 0) {
-//     // No capabilities to advertise for now
-//     std::string response = ":ircserv CAP " + target + " LS :\r\n";
-//     sendNonBlockingCommand(client->getSocketFd(), response);
-//   } else if (cmd.rfind("CAP REQ", 0) == 0) {
-//     // Minimal ACK; you can parse and selectively ACK/NAK later
-//     std::string response = ":ircserv CAP " + target + " ACK :\r\n";
-//     sendNonBlockingCommand(client->getSocketFd(), response);
-//   } else {
-//     std::string response = ":ircserv CAP " + target + " ACK :\r\n";
-//     sendNonBlockingCommand(client->getSocketFd(), response);
-//   }
-// }
-
-// void Server::handleCap(Client *client, const std::string &cmd) {
-//   if (cmd == "CAP LS" || cmd.find("CAP LS") == 0) {
-//     std::string response =
-//         ": ircserv CAP " + client->getNickname() + " LS :\r\n";
-//     sendNonBlockingCommand(client->getSocketFd(), response);
-//   } else {
-//     std::string response = ":ircserv CAP * ACK :capabilities
-//     acknowledged\r\n"; sendNonBlockingCommand(client->getSocketFd(),
-//     response);
-//   }
-// }
-
 void Server::handlePass(Client *client, const std::string &cmd)
 {
-  // Extract the password from the command
   size_t pos = cmd.find(' ');
   if (pos == std::string::npos)
   {
@@ -1059,8 +1001,7 @@ void Server::handlePass(Client *client, const std::string &cmd)
     return;
   }
   std::string password = cmd.substr(pos + 1);
-  // Here you would check the password against the server's expected password
-  int fd = client->getSocketFd();
+  // int fd = client->getSocketFd();
   if (this->_password == password)
   {
     client->setHasPass(true);
@@ -1070,7 +1011,7 @@ void Server::handlePass(Client *client, const std::string &cmd)
     std::string errorMsg =
         "464 " + client->getNickname() + " :Password incorrect\r\n";
     sendNonBlockingCommand(client->getSocketFd(), errorMsg);
-    clearClient(fd);
+    // clearClient(fd);
     return;
   }
 }
@@ -1086,7 +1027,6 @@ void Server::handleNick(Client *client, const std::string &cmd)
   }
   std::string nickname = cmd.substr(pos + 1);
 
-  // Check if the nickname is already in use (don't check authenticated status)
   int fd = client->getSocketFd();
   for (std::map<int, Client>::iterator it = this->_clients.begin();
        it != this->_clients.end(); ++it)
@@ -1115,9 +1055,6 @@ void Server::handleUser(Client *client, const std::string &cmd)
     return;
   }
   std::string username = cmd.substr(pos + 1);
-  // Divide into 4 parts: username, hostname, servername, realname and do the
-  // checks for real name must start with ':' split by space and check if there
-  // are at least 4 parts
   std::vector<std::string> parts;
   size_t start = 0;
   while (start < username.length())
@@ -1138,7 +1075,6 @@ void Server::handleUser(Client *client, const std::string &cmd)
     sendNonBlockingCommand(client->getSocketFd(), errorMsg);
     return;
   }
-  // check the real name starts with ':'
   if (parts[3][0] != ':')
   {
     std::string errorMsg =
@@ -1206,14 +1142,18 @@ void Server::acceptClient()
 
   this->_pollFds.push_back(clientPollFd);
   this->_clients.insert(std::make_pair(cli.getSocketFd(), cli));
+  if (LOGS){
   std::cout << BOLDGREEN << "\n[" RESET BOLD "LOGS" BOLDGREEN "] " << RESET
             << "Client accepted fd=" << cli.getSocketFd() << std::endl;
+  }
 }
 
 void Server::closeSockets()
 {
+  if (LOGS){
   std::cout << BOLDGREEN << "[" RESET BOLD "LOGS" BOLDGREEN "] " << RESET
             << "Closing socket connections" << std::endl;
+  }
   for (size_t i = 0; i < this->_pollFds.size(); i++)
   {
     close(this->_pollFds[i].fd);
@@ -1223,8 +1163,10 @@ void Server::closeSockets()
 
 void Server::createSocket()
 {
+  if (LOGS){
   std::cout << BOLDGREEN << "[" RESET BOLD "LOGS" BOLDGREEN "] " << RESET
             << "Creating socket on port " << this->_port << std::endl;
+  }
   int en = 1;
   struct sockaddr_in add;
   struct pollfd serverPollFd;
@@ -1281,8 +1223,11 @@ void Server::initBot()
   bot.setIp("127.0.0.1");
   bot.setAuthenticated(true);
   _clients.insert(std::make_pair(-2, bot));
-  std::cout << BOLDGREEN << "[" RESET BOLD "LOGS" BOLDGREEN "] " << RESET
-            << BOTNICK " initialized" << std::endl;
+  if (LOGS)
+  {
+    std::cout << BOLDGREEN << "[" RESET BOLD "LOGS" BOLDGREEN "] " << RESET
+    << BOTNICK " initialized" << std::endl;
+  }
 }
 
 void Server::handleBotCommand(Client *client, const std::string &target,
@@ -1313,7 +1258,7 @@ void Server::handleBotCommand(Client *client, const std::string &target,
   std::string dst = target;
   if (target == BOTNICK)
   {
-    dst = client->getNickname(); // Reply in private
+    dst = client->getNickname();
   }
 
   std::string fullMsg =
@@ -1321,7 +1266,6 @@ void Server::handleBotCommand(Client *client, const std::string &target,
 
   if (dst[0] == '#')
   {
-    // Broadcast to channel
     for (size_t i = 0; i < _channels.size(); i++)
     {
       if (_channels[i].getName() == dst)
@@ -1333,7 +1277,6 @@ void Server::handleBotCommand(Client *client, const std::string &target,
   }
   else
   {
-    // PM
     sendNonBlockingCommand(client->getSocketFd(), fullMsg);
   }
 }

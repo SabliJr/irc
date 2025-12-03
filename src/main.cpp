@@ -2,11 +2,6 @@
 
 bool check_args(int ac, char **av)
 {
-	// Check number of arguments
-	// Check if av[0] is ./ircserv
-	// Check if av[1] is a valid port
-	// Check if av[2] is a password
-
 	if (ac != 3) {
 		std::cout << "Usage: ./ircserv <port> <password>" << std::endl;
 		return false;
