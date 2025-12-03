@@ -7,7 +7,11 @@ OBJS_DIR = objs/
 SRCS_DIR = src/
 
 FILES = main.cpp \
-		Server.cpp
+		Server.cpp \
+		Client.cpp \
+		Channel.cpp \
+		Exceptions.cpp \
+		commandsirc.cpp
 
 SRCS = $(addprefix $(SRCS_DIR), $(FILES))
 OBJS = $(addprefix $(OBJS_DIR), $(FILES:.cpp=.o))
@@ -32,5 +36,8 @@ fclean: clean
 	@rm -f $(NAME)
 
 re: fclean all
+
+x: all
+	./$(NAME) 8888 pa
 
 .PHONY: all clean fclean re

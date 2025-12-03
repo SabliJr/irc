@@ -5,6 +5,11 @@ https://medium.com/@afatir.ahmedfatir/small-irc-server-ft-irc-42-network-7cee848
 
 https://www.codequoi.com/programmation-reseau-via-socket-en-c/
 
+<<<<<<< HEAD
 https://excalidraw.com/#room=3b557b8453149af096ff,G_sk-YvGGNRodE0FLRMpEA
 
 hello
+=======
+
+
+>>>>>>> client_side

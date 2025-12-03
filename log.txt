@@ -1,0 +1,16 @@
+FIX
+
+
+
+SET topic doesnt set it 
+VIEW topic is working 	✅
+
+Mode +o for adding operators doesnt work
+
+
+
+
+CHECK IRSSI RESPONSE
+/part #channelName ->   19:04 -!- Irssi: critical nicklist_set_host: assertion 'host != NULL' failed
+                        19:04 -!- Irssi: critical nicklist_set_host: assertion 'host != NULL' failed
+                        19:04 -!- Irssi: critical nicklist_set_host: assertion 'host != NULL' failed
